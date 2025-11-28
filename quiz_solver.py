@@ -12,7 +12,11 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 import base64
 
-from browser import BrowserManager
+# Try lightweight browser first (for Vercel), fallback to full browser
+try:
+    from browser_lightweight import BrowserManager
+except ImportError:
+    from browser import BrowserManager
 from llm_client import parse_quiz_instructions, solve_quiz_task
 from data_processor import (
     download_file, process_pdf, process_csv, process_excel,
