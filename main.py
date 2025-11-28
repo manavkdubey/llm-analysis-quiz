@@ -21,8 +21,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global browser manager
-browser_manager: BrowserManager = None
+# Global browser manager - initialize at module level
+browser_manager = BrowserManager()
 
 
 @asynccontextmanager
@@ -30,10 +30,8 @@ async def lifespan(app: FastAPI):
     """Manage application lifespan - startup and shutdown."""
     global browser_manager
     
-    # Startup
-    logger.info("Starting browser manager...")
-    browser_manager = BrowserManager()
-    logger.info("Browser manager started")
+    # Startup - browser_manager already initialized at module level
+    logger.info("Browser manager ready")
     
     yield
     
@@ -79,10 +77,7 @@ async def solve_quiz(request: QuizRequest):
     
     try:
         # Create solver and solve quiz
-        # Initialize browser manager if not already done
-        if browser_manager is None:
-            browser_manager = BrowserManager()
-        
+        # browser_manager is initialized at module level
         solver = QuizSolver(browser_manager)
         
         # Run solver in background task to avoid blocking
