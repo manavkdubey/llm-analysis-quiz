@@ -4,7 +4,7 @@ An automated system for solving data analysis quizzes using LLMs, headless brows
 
 ## Features
 
-- **Headless Browser Integration**: Uses Playwright to render JavaScript-heavy quiz pages
+- **Lightweight Browser**: Uses httpx with base64 extraction for JavaScript-rendered quiz pages (Vercel-compatible)
 - **LLM-Powered Parsing**: Uses OpenRouter API with intelligent model selection for cost-effective parsing and problem solving
 - **Smart Model Selection**: Automatically selects the best cost-effective model based on available options and budget constraints
 - **Cost Tracking**: Monitors API usage to stay within budget limits
@@ -20,8 +20,9 @@ An automated system for solving data analysis quizzes using LLMs, headless brows
 
 ```bash
 pip install -r requirements.txt
-playwright install chromium
 ```
+
+**Note**: For server deployment with Playwright, use `requirements_server.txt` instead.
 
 ### 2. Configure Environment
 
@@ -105,9 +106,9 @@ curl -X POST http://localhost:8000/quiz \
 
 - **main.py**: FastAPI server with endpoints
 - **quiz_solver.py**: Core quiz solving logic
-- **browser.py**: Playwright browser management
-- **llm_client.py**: OpenAI API integration
-- **data_processor.py**: Data processing utilities
+- **browser.py**: Lightweight browser manager (httpx-based, Vercel-compatible)
+- **llm_client.py**: OpenRouter API integration with smart model selection
+- **data_processor.py**: Data processing utilities (PDF, CSV, Excel, visualization)
 - **models.py**: Pydantic models for validation
 - **config.py**: Configuration management
 
@@ -125,7 +126,7 @@ See [DEPLOY.md](DEPLOY.md) for detailed deployment instructions.
    - `SECRET`
 4. Deploy
 
-**Note**: Playwright requires browser binaries. For Vercel, you may need to use a Pro plan or consider alternative platforms like Railway/Render for better Playwright support.
+**Note**: The codebase uses a lightweight httpx-based browser for Vercel compatibility. For server deployments, Playwright can be used (see `requirements_server.txt`).
 
 ## License
 
