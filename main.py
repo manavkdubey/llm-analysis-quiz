@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting browser manager...")
     browser_manager = BrowserManager()
-    await browser_manager.__aenter__()
+    # BrowserManager is lightweight (httpx), no need for async context manager
     logger.info("Browser manager started")
     
     yield
@@ -80,6 +80,10 @@ async def solve_quiz(request: QuizRequest):
     
     try:
         # Create solver and solve quiz
+        # Initialize browser manager if not already done
+        if browser_manager is None:
+            browser_manager = BrowserManager()
+        
         solver = QuizSolver(browser_manager)
         
         # Run solver in background task to avoid blocking
