@@ -1,92 +1,78 @@
-"""Headless browser integration using Playwright."""
-import asyncio
-from playwright.async_api import async_playwright, Browser, Page
-from typing import Optional
+"""Lightweight browser alternative for Vercel - no Playwright needed."""
+import httpx
 import logging
+from typing import Optional
+import base64
+import re
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
 
 class BrowserManager:
-    """Manages headless browser instances."""
+    """Lightweight browser manager using httpx + base64 extraction."""
     
     def __init__(self):
-        self.playwright = None
-        self.browser: Optional[Browser] = None
-        self._lock = asyncio.Lock()
+        self.client = httpx.AsyncClient(timeout=60.0, follow_redirects=True)
     
     async def __aenter__(self):
         """Async context manager entry."""
-        self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(
-            headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox']
-        )
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        if self.browser:
-            await self.browser.close()
-        if self.playwright:
-            await self.playwright.stop()
+        await self.client.aclose()
     
     async def get_page_content(self, url: str, wait_time: int = 5000) -> str:
         """
-        Navigate to URL and return rendered HTML content.
+        Fetch URL and extract content, handling base64 encoded quiz content.
         
         Args:
             url: URL to visit
-            wait_time: Time to wait for JavaScript execution (ms)
+            wait_time: Ignored (kept for compatibility)
         
         Returns:
-            Rendered HTML content
+            HTML content with base64 content decoded
         """
-        async with self._lock:
-            page = await self.browser.new_page()
-            try:
-                logger.info(f"Navigating to {url}")
-                response = await page.goto(url, wait_until="networkidle", timeout=60000)
-                if response:
-                    logger.info(f"Page loaded with status: {response.status}, final URL: {page.url}")
-                await page.wait_for_timeout(wait_time)
-                content = await page.content()
-                return content
-            finally:
-                await page.close()
+        logger.info(f"Fetching {url}")
+        response = await self.client.get(url)
+        response.raise_for_status()
+        
+        html_content = response.text
+        
+        # Extract base64 content from script tags (quiz pages use this)
+        soup = BeautifulSoup(html_content, 'html.parser')
+        scripts = soup.find_all('script')
+        
+        for script in scripts:
+            script_text = script.string or ""
+            # Look for atob() calls with base64 strings
+            atob_matches = re.findall(r'atob\(`([^`]+)`\)', script_text)
+            for base64_str in atob_matches:
+                try:
+                    decoded = base64.b64decode(base64_str).decode('utf-8')
+                    # Inject decoded content into a div for parsing
+                    decoded_div = soup.new_tag('div', id='decoded-content')
+                    decoded_div.string = decoded
+                    soup.body.append(decoded_div) if soup.body else None
+                except Exception as e:
+                    logger.warning(f"Failed to decode base64: {e}")
+        
+        return str(soup)
     
     async def download_file(self, url: str, save_path: str) -> str:
         """
-        Download a file from URL.
+        Download a file from URL using httpx.
         
         Args:
             url: URL to download from
-            save_path: Path to save the file
+            save_path: Path to save the file (not used, kept for compatibility)
         
         Returns:
-            Path to downloaded file
+            File content as bytes
         """
-        async with self._lock:
-            page = await self.browser.new_page()
-            try:
-                async with page.expect_download() as download_info:
-                    await page.goto(url)
-                download = await download_info.value
-                await download.save_as(save_path)
-                return save_path
-            finally:
-                await page.close()
-
-
-# Global browser manager instance
-_browser_manager: Optional[BrowserManager] = None
-
-
-async def get_browser_manager() -> BrowserManager:
-    """Get or create browser manager instance."""
-    global _browser_manager
-    if _browser_manager is None:
-        _browser_manager = BrowserManager()
-        await _browser_manager.__aenter__()
-    return _browser_manager
+        logger.info(f"Downloading {url}")
+        response = await self.client.get(url)
+        response.raise_for_status()
+        return response.content
 

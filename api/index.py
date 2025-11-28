@@ -10,8 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 logging.basicConfig(level=logging.INFO)
 
 try:
-    # Use Vercel version (lightweight, no Playwright)
-    from main_vercel import app
+    # Import main app (now uses lightweight browser everywhere)
+    from main import app
     from mangum import Mangum
     
     # Create ASGI handler for Vercel

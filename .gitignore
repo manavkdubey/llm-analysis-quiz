@@ -20,4 +20,10 @@ htmlcov/
 .DS_Store
 playwright-browsers/
 .vercel/
+# Deployment scripts (server-specific, not committed)
+deploy_server.sh
+nginx_setup.sh
+setup_https.sh
+SERVER_DEPLOY.md
+run.sh
 
