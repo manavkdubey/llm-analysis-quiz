@@ -7,7 +7,5 @@ __pycache__/
 playwright-browsers/
 *.md
 !README.md
-browser.py
-requirements.txt
-main.py
+requirements_server.txt
 

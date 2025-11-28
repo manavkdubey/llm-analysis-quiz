@@ -2,6 +2,8 @@
 import sys
 import os
 import logging
+import json
+import traceback
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,8 +20,13 @@ try:
     handler = Mangum(app, lifespan="off")
 except Exception as e:
     # Log error for debugging
-    import traceback
     logging.error(f"Failed to import app: {e}")
     logging.error(traceback.format_exc())
-    raise
+    # Create a minimal error handler
+    def handler(event, context):
+        return {
+            "statusCode": 500,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"error": f"Import error: {str(e)}", "traceback": traceback.format_exc()})
+        }
 
