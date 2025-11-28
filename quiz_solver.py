@@ -12,11 +12,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 import base64
 
-# Try lightweight browser first (for Vercel), fallback to full browser
-try:
-    from browser_lightweight import BrowserManager
-except ImportError:
-    from browser import BrowserManager
+from browser import BrowserManager
 from llm_client import parse_quiz_instructions, solve_quiz_task
 from data_processor import (
     download_file, process_pdf, process_csv, process_excel,
@@ -217,17 +213,38 @@ class QuizSolver:
                 )
                 
                 # Extract just the answer value if LLM returned a full payload structure
+                if isinstance(answer, str):
+                    # Try to parse as JSON first
+                    try:
+                        parsed = json.loads(answer)
+                        if isinstance(parsed, dict):
+                            # Remove metadata keys, keep only answer
+                            metadata_keys = ['email', 'secret', 'url', 'submit_url']
+                            if 'answer' in parsed:
+                                answer = parsed['answer']
+                            else:
+                                # If no 'answer' key, use the first non-metadata value
+                                answer = next((v for k, v in parsed.items() if k not in metadata_keys), parsed)
+                    except (json.JSONDecodeError, ValueError):
+                        pass  # Not JSON, use as-is
+                
                 if isinstance(answer, dict):
+                    # Remove metadata keys
+                    metadata_keys = ['email', 'secret', 'url', 'submit_url']
                     if 'answer' in answer:
                         answer = answer['answer']
-                    elif 'email' in answer or 'secret' in answer:
-                        answer = answer.get('answer', str(answer))
+                    else:
+                        # Get first non-metadata value, or convert dict to string if all are metadata
+                        non_metadata = {k: v for k, v in answer.items() if k not in metadata_keys}
+                        if non_metadata:
+                            answer = next(iter(non_metadata.values()))
+                        else:
+                            # All keys are metadata, this shouldn't be the answer
+                            logger.warning(f"LLM returned only metadata keys: {list(answer.keys())}")
+                            answer = str(answer)
                 
                 # Convert answer to proper type
                 answer = self._convert_answer_type(answer, expected_type)
-                
-                if isinstance(answer, dict) and ('email' in answer or 'secret' in answer):
-                    answer = answer.get('answer', 'anything you want')
                 
                 logger.info(f"Final answer (attempt {attempt}, type: {type(answer).__name__}): {answer}")
                 
