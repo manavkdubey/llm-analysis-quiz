@@ -14,6 +14,6 @@ from main import app
 from mangum import Mangum
 
 # Create ASGI handler for Vercel
-# Don't disable lifespan - let Mangum handle it
-handler = Mangum(app)
+# Mangum will handle the ASGI to Lambda conversion
+handler = Mangum(app, lifespan="off")
 
