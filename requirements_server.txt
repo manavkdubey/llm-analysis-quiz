@@ -1,5 +1,6 @@
 fastapi
 mangum
+playwright
 pydantic
 httpx
 pandas
