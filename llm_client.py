@@ -623,9 +623,8 @@ Analyze the given data and question carefully, then provide ONLY the answer valu
 - For numerical answers, provide ONLY the number (e.g., 12345, not "12345" or {"answer": 12345})
 - For boolean answers, provide true or false
 - For string answers, provide the exact string value
-- For JSON answers, provide ONLY the JSON object value (not wrapped in email/secret/url/submit_url fields)
-CRITICAL: Do NOT include email, secret, url, submit_url, or any other metadata fields.
-Provide ONLY the answer value itself. If the question asks for JSON, return only the JSON object, not wrapped in any other structure."""
+- For JSON answers, provide ONLY the JSON object value (not wrapped in email/secret/url fields)
+Do NOT include email, secret, url, or any other metadata. Provide ONLY the answer value itself."""
 
     user_prompt = f"Question: {question}\n\n"
     

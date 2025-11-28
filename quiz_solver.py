@@ -184,6 +184,11 @@ class QuizSolver:
             task_type = instructions.get("task_type", "unknown")
             expected_type = instructions.get("expected_answer_type", "string")
             
+            # Make submit_url absolute if needed
+            if submit_url and not submit_url.startswith('http'):
+                from urllib.parse import urljoin
+                submit_url = urljoin(quiz_url, submit_url)
+            
             logger.info(f"Question: {question}")
             logger.info(f"Submit URL: {submit_url}")
             logger.info(f"Data sources: {data_sources}")
@@ -224,9 +229,18 @@ class QuizSolver:
                                 answer = parsed['answer']
                             else:
                                 # If no 'answer' key, use the first non-metadata value
-                                answer = next((v for k, v in parsed.items() if k not in metadata_keys), parsed)
+                                non_metadata = {k: v for k, v in parsed.items() if k not in metadata_keys}
+                                if non_metadata:
+                                    answer = next(iter(non_metadata.values()))
+                                else:
+                                    # Empty or only metadata - this is invalid, retry
+                                    logger.warning(f"LLM returned invalid response: {answer}, retrying...")
+                                    if attempt < max_retries:
+                                        continue
+                                    answer = ""  # Fallback
                     except (json.JSONDecodeError, ValueError):
-                        pass  # Not JSON, use as-is
+                        # Not JSON, check if it's a quoted string that needs unquoting
+                        answer = answer.strip().strip('"').strip("'")
                 
                 if isinstance(answer, dict):
                     # Remove metadata keys
@@ -234,14 +248,22 @@ class QuizSolver:
                     if 'answer' in answer:
                         answer = answer['answer']
                     else:
-                        # Get first non-metadata value, or convert dict to string if all are metadata
+                        # Get first non-metadata value
                         non_metadata = {k: v for k, v in answer.items() if k not in metadata_keys}
                         if non_metadata:
                             answer = next(iter(non_metadata.values()))
                         else:
-                            # All keys are metadata, this shouldn't be the answer
-                            logger.warning(f"LLM returned only metadata keys: {list(answer.keys())}")
-                            answer = str(answer)
+                            # Empty dict or only metadata - invalid, retry
+                            logger.warning(f"LLM returned empty/invalid dict: {answer}, retrying...")
+                            if attempt < max_retries:
+                                continue
+                            answer = ""  # Fallback
+                
+                # If answer is still empty or invalid, retry
+                if answer == "" or answer == {} or (isinstance(answer, dict) and len(answer) == 0):
+                    logger.warning(f"Empty answer detected (attempt {attempt}/{max_retries})")
+                    if attempt < max_retries:
+                        continue
                 
                 # Convert answer to proper type
                 answer = self._convert_answer_type(answer, expected_type)

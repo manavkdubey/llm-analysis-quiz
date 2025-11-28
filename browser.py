@@ -26,19 +26,29 @@ class BrowserManager:
     async def get_page_content(self, url: str, wait_time: int = 5000) -> str:
         """
         Fetch URL and extract content, handling base64 encoded quiz content.
+        Simulates JavaScript execution by replacing window.location.origin with actual origin.
         
         Args:
             url: URL to visit
             wait_time: Ignored (kept for compatibility)
         
         Returns:
-            HTML content with base64 content decoded
+            HTML content with base64 content decoded and JavaScript placeholders replaced
         """
         logger.info(f"Fetching {url}")
         response = await self.client.get(url)
         response.raise_for_status()
         
         html_content = response.text
+        
+        # Extract origin from URL (like JavaScript window.location.origin would)
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        # Replace <span class="origin"></span> with actual origin (JavaScript would do this)
+        html_content = re.sub(r'<span class="origin"></span>', origin, html_content)
+        html_content = re.sub(r'window\.location\.origin', origin, html_content)
         
         # Extract base64 content from script tags (quiz pages use this)
         soup = BeautifulSoup(html_content, 'html.parser')
@@ -51,6 +61,9 @@ class BrowserManager:
             for base64_str in atob_matches:
                 try:
                     decoded = base64.b64decode(base64_str).decode('utf-8')
+                    # Replace origin in decoded content too
+                    decoded = decoded.replace('window.location.origin', origin)
+                    decoded = decoded.replace('<span class="origin"></span>', origin)
                     # Inject decoded content into a div for parsing
                     decoded_div = soup.new_tag('div', id='decoded-content')
                     decoded_div.string = decoded
