@@ -9,11 +9,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Configure logging for Vercel
 logging.basicConfig(level=logging.INFO)
 
-# Import main app (now uses lightweight browser everywhere)
+# Import main app
 from main import app
-from mangum import Mangum
 
-# Create ASGI handler for Vercel
-# Mangum will handle the ASGI to Lambda conversion
-handler = Mangum(app, lifespan="off")
+# Vercel automatically handles ASGI apps - just export the app
+# No need for Mangum wrapper
 
