@@ -47,11 +47,23 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete")
 
 
-app = FastAPI(
-    title="LLM Analysis Quiz Solver",
-    description="API endpoint for solving LLM Analysis Quiz tasks",
-    lifespan=lifespan
-)
+# Check if running on Vercel (no lifespan support)
+import os
+if os.getenv("VERCEL"):
+    # Vercel doesn't support lifespan events, create app without it
+    app = FastAPI(
+        title="LLM Analysis Quiz Solver",
+        description="API endpoint for solving LLM Analysis Quiz tasks"
+    )
+    # Initialize browser manager at module level for Vercel
+    browser_manager = BrowserManager()
+else:
+    # Local/server deployment with lifespan support
+    app = FastAPI(
+        title="LLM Analysis Quiz Solver",
+        description="API endpoint for solving LLM Analysis Quiz tasks",
+        lifespan=lifespan
+    )
 
 
 @app.post("/quiz", response_model=dict)

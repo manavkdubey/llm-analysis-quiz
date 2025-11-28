@@ -14,6 +14,6 @@ from main import app
 from mangum import Mangum
 
 # Create ASGI handler for Vercel
-# Use lifespan="off" to disable FastAPI lifespan events (Vercel handles this)
-handler = Mangum(app, lifespan="off")
+# Don't disable lifespan - let Mangum handle it
+handler = Mangum(app)
 
