@@ -207,7 +207,12 @@ class QuizSolver:
                     initial_answer = ""
                 response = await self._submit_answer(submit_url, quiz_url, initial_answer)
                 if response.url:
-                    await self.solve_quiz(response.url)
+                    from urllib.parse import urlparse, urljoin
+                    next_url = response.url
+                    if not next_url.startswith('http'):
+                        parsed = urlparse(quiz_url)
+                        next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
+                    await self.solve_quiz(next_url)
                 return
             
             # Step 3: Fetch and process data if needed
