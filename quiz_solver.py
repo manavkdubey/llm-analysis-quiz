@@ -163,7 +163,7 @@ class QuizSolver:
         try:
             from urllib.parse import urlparse, parse_qs, urlencode
             parsed = urlparse(quiz_url)
-            if "project2" in quiz_url and "email" not in parsed.query:
+            if "email" not in parsed.query:
                 params = parse_qs(parsed.query)
                 params['email'] = [EMAIL]
                 new_query = urlencode(params, doseq=True)
