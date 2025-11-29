@@ -184,7 +184,11 @@ class QuizSolver:
             task_type = instructions.get("task_type", "unknown")
             expected_type = instructions.get("expected_answer_type", "string")
             
-            # Make submit_url absolute if needed
+            if not submit_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(quiz_url)
+                submit_url = f"{parsed.scheme}://{parsed.netloc}/submit"
+            
             if submit_url and not submit_url.startswith('http'):
                 from urllib.parse import urljoin
                 submit_url = urljoin(quiz_url, submit_url)
@@ -192,6 +196,14 @@ class QuizSolver:
             logger.info(f"Question: {question}")
             logger.info(f"Submit URL: {submit_url}")
             logger.info(f"Data sources: {data_sources}")
+            
+            if not question or "how to play" in question.lower() or "start by posting" in question.lower():
+                logger.info("Detected instructions page, submitting initial answer to start quiz chain")
+                initial_answer = ""
+                response = await self._submit_answer(submit_url, quiz_url, initial_answer)
+                if response.url:
+                    await self.solve_quiz(response.url)
+                return
             
             # Step 3: Fetch and process data if needed
             data = None
