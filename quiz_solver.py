@@ -222,15 +222,11 @@ class QuizSolver:
                         parsed = urlparse(quiz_url)
                         next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
                     parsed_next = urlparse(next_url)
-                    try:
-                        temp_content = await self.browser.get_page_content(next_url)
-                        if "personalized" in temp_content.lower() and "email" not in parsed_next.query:
-                            params = parse_qs(parsed_next.query)
-                            params['email'] = [EMAIL]
-                            new_query = urlencode(params, doseq=True)
-                            next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
-                    except:
-                        pass
+                    if "email" not in parsed_next.query:
+                        params = parse_qs(parsed_next.query)
+                        params['email'] = [EMAIL]
+                        new_query = urlencode(params, doseq=True)
+                        next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
                     await self.solve_quiz(next_url)
                 return
             
@@ -324,8 +320,7 @@ class QuizSolver:
                             parsed = urlparse(quiz_url)
                             next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
                         parsed_next = urlparse(next_url)
-                        temp_content = await self.browser.get_page_content(next_url)
-                        if "personalized" in temp_content.lower() and "email" not in parsed_next.query:
+                        if "email" not in parsed_next.query:
                             params = parse_qs(parsed_next.query)
                             params['email'] = [EMAIL]
                             new_query = urlencode(params, doseq=True)
@@ -349,15 +344,11 @@ class QuizSolver:
                             parsed = urlparse(quiz_url)
                             next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
                         parsed_next = urlparse(next_url)
-                        try:
-                            temp_content = await self.browser.get_page_content(next_url)
-                            if "personalized" in temp_content.lower() and "email" not in parsed_next.query:
-                                params = parse_qs(parsed_next.query)
-                                params['email'] = [EMAIL]
-                                new_query = urlencode(params, doseq=True)
-                                next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
-                        except:
-                            pass
+                        if "email" not in parsed_next.query:
+                            params = parse_qs(parsed_next.query)
+                            params['email'] = [EMAIL]
+                            new_query = urlencode(params, doseq=True)
+                            next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
                         await self.solve_quiz(next_url)
                         return
                     elif response.url:
