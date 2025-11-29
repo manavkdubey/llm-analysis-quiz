@@ -161,6 +161,14 @@ class QuizSolver:
         logger.info(f"Solving quiz at {quiz_url}")
         
         try:
+            from urllib.parse import urlparse, parse_qs, urlencode
+            parsed = urlparse(quiz_url)
+            if "project2" in quiz_url and "email" not in parsed.query:
+                params = parse_qs(parsed.query)
+                params['email'] = [EMAIL]
+                new_query = urlencode(params, doseq=True)
+                quiz_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
+            
             html_content = await self.browser.get_page_content(quiz_url)
             extracted = await self.extract_quiz_content(html_content)
             
