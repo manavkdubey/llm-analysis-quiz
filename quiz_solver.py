@@ -161,16 +161,18 @@ class QuizSolver:
         logger.info(f"Solving quiz at {quiz_url}")
         
         try:
+            html_content = await self.browser.get_page_content(quiz_url)
+            extracted = await self.extract_quiz_content(html_content)
+            
             from urllib.parse import urlparse, parse_qs, urlencode
-            parsed = urlparse(quiz_url)
-            if "personalized" in quiz_url.lower() and "email" not in parse_qs(parsed.query):
+            if "personalized" in html_content.lower() and "email" not in urlparse(quiz_url).query:
+                parsed = urlparse(quiz_url)
                 params = parse_qs(parsed.query)
                 params['email'] = [EMAIL]
                 new_query = urlencode(params, doseq=True)
                 quiz_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
-            
-            html_content = await self.browser.get_page_content(quiz_url)
-            extracted = await self.extract_quiz_content(html_content)
+                html_content = await self.browser.get_page_content(quiz_url)
+                extracted = await self.extract_quiz_content(html_content)
             
             # Step 2: Parse instructions using LLM (with retries)
             try:
@@ -214,18 +216,18 @@ class QuizSolver:
                     initial_answer = ""
                 response = await self._submit_answer(submit_url, quiz_url, initial_answer)
                 if response.url:
-                    from urllib.parse import urlparse, urljoin, urlencode
+                    from urllib.parse import urlparse, urljoin, parse_qs, urlencode
                     next_url = response.url
                     if not next_url.startswith('http'):
                         parsed = urlparse(quiz_url)
                         next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
-                    if "personalized" in str(response).lower() or "email" in next_url.lower():
-                        from urllib.parse import parse_qs, urlencode
-                        parsed_url = urlparse(next_url)
-                        params = parse_qs(parsed_url.query)
-                        params['email'] = [EMAIL]
-                        new_query = urlencode(params, doseq=True)
-                        next_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}?{new_query}"
+                    parsed_next = urlparse(next_url)
+                    if "personalized" in next_url.lower() or "email" in str(response).lower():
+                        params = parse_qs(parsed_next.query)
+                        if 'email' not in params:
+                            params['email'] = [EMAIL]
+                            new_query = urlencode(params, doseq=True)
+                            next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
                     await self.solve_quiz(next_url)
                 return
             
@@ -313,11 +315,18 @@ class QuizSolver:
                 if response.correct:
                     logger.info("Answer is correct!")
                     if response.url:
-                        from urllib.parse import urlparse, urljoin
+                        from urllib.parse import urlparse, urljoin, parse_qs, urlencode
                         next_url = response.url
                         if not next_url.startswith('http'):
                             parsed = urlparse(quiz_url)
                             next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
+                        parsed_next = urlparse(next_url)
+                        if "personalized" in next_url.lower() or "email" in str(response).lower():
+                            params = parse_qs(parsed_next.query)
+                            if 'email' not in params:
+                                params['email'] = [EMAIL]
+                                new_query = urlencode(params, doseq=True)
+                                next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
                         await self.solve_quiz(next_url)
                     else:
                         logger.info("Quiz completed!")
@@ -331,11 +340,18 @@ class QuizSolver:
                         continue
                     elif response.url:
                         logger.info("Moving to next quiz URL")
-                        from urllib.parse import urlparse, urljoin
+                        from urllib.parse import urlparse, urljoin, parse_qs, urlencode
                         next_url = response.url
                         if not next_url.startswith('http'):
                             parsed = urlparse(quiz_url)
                             next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
+                        parsed_next = urlparse(next_url)
+                        if "personalized" in next_url.lower() or "email" in str(response).lower():
+                            params = parse_qs(parsed_next.query)
+                            if 'email' not in params:
+                                params['email'] = [EMAIL]
+                                new_query = urlencode(params, doseq=True)
+                                next_url = f"{parsed_next.scheme}://{parsed_next.netloc}{parsed_next.path}?{new_query}"
                         await self.solve_quiz(next_url)
                         return
                     elif response.url:
