@@ -199,7 +199,12 @@ class QuizSolver:
             
             if not question or "how to play" in question.lower() or "start by posting" in question.lower():
                 logger.info("Detected instructions page, submitting initial answer to start quiz chain")
-                initial_answer = ""
+                if "project2" in quiz_url:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(quiz_url)
+                    initial_answer = f"{parsed.path}"
+                else:
+                    initial_answer = ""
                 response = await self._submit_answer(submit_url, quiz_url, initial_answer)
                 if response.url:
                     await self.solve_quiz(response.url)
