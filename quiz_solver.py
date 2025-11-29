@@ -299,18 +299,31 @@ class QuizSolver:
                 if response.correct:
                     logger.info("Answer is correct!")
                     if response.url:
-                        await self.solve_quiz(response.url)
+                        from urllib.parse import urlparse, urljoin
+                        next_url = response.url
+                        if not next_url.startswith('http'):
+                            parsed = urlparse(quiz_url)
+                            next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
+                        await self.solve_quiz(next_url)
                     else:
                         logger.info("Quiz completed!")
                     return
                 else:
                     logger.warning(f"Answer incorrect (attempt {attempt}): {response.reason}")
                     
-                    # If we have time and retries left, try again
                     if attempt < max_retries and self._has_time_for_retry():
                         logger.info(f"Retrying with different approach (attempt {attempt + 1}/{max_retries})")
                         await asyncio.sleep(1)
                         continue
+                    elif response.url:
+                        logger.info("Moving to next quiz URL")
+                        from urllib.parse import urlparse, urljoin
+                        next_url = response.url
+                        if not next_url.startswith('http'):
+                            parsed = urlparse(quiz_url)
+                            next_url = urljoin(f"{parsed.scheme}://{parsed.netloc}", next_url)
+                        await self.solve_quiz(next_url)
+                        return
                     elif response.url:
                         logger.info("Moving to next quiz URL")
                         await self.solve_quiz(response.url)
